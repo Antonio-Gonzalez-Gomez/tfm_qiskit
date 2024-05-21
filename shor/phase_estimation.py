@@ -9,9 +9,10 @@ from qiskit_aer import AerSimulator
 from qiskit.circuit.library import QFT
 from qiskit_ibm_runtime import SamplerV2 as Sampler
 
-num_qubits = 3
-#Fase esperada (autovalor)
-theta = pi * 5/4
+#PARÁMETROS DE ENTRADA
+num_qubits = 3      #Número de qubits
+theta = pi * 5/4    #Fase esperada (autovalor)
+######################
 
 #El último qubit no se mide, por lo que se especifica el número de bits clásicos
 qc = QuantumCircuit(num_qubits + 1, num_qubits)
@@ -20,14 +21,17 @@ qc.x(num_qubits)
 #Se prepara la superposición con puertas Hadamard
 qc.h(range(num_qubits))
 for i in range(num_qubits):
-    repeticiones = 2 ** i #U, U^2, U^4, etc
-    #Se repite la puerta CP las veces necesarias
-    for r in range(repeticiones):
-        qc.cp(theta, i, num_qubits)
+    exp = 2 ** i #U, U^2, U^4, etc
+    #Se instancia un circuito para albergar la puerta CP
+    cp = QuantumCircuit(num_qubits + 1, name="CP")
+    cp.cp(theta, i, num_qubits)
+    #Se repite el circuito las veces necesarias
+    qc.compose(cp.power(exp), inplace=True)
 #Se añade la transformada inversa de Fourier
 qc.compose(QFT(num_qubits, inverse=True), inplace=True)
 qc.measure(range(num_qubits), range(num_qubits))
-qc.draw(output="mpl", style="iqp")
+#Los circuitos se nombraron para poder descomponerlos en puertas CP
+qc.decompose(gates_to_decompose=["CP"]).draw(output="mpl", style="iqp")
 
 #Se instancia un simulador
 aersim = AerSimulator()
